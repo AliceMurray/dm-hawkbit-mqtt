@@ -33,31 +33,48 @@ def publish(provider, name, type, version, description, artifact,
 
         print('Got response from server when posting software module:')
         pprint.pprint(response)
-        artifacts_url = None
-        self_url = None
-        type_url = None
-        metadata_url = None
 
         if 'errorCode' in response:
-            print('An error occurred; stopping.', file=sys.stderr)
+            print('An error occured at posting software module; stopping.', file=sys.stderr)
             return
 
         for item in response:
             if 'id' in item:
                 id = item['id']
-            if '_links' in item:
-                if 'artifacts' in item['_links']:
-                    artifacts_url = item['_links']['artifacts']['href']
-                if 'self' in item['_links']:
-                    self_url = item['_links']['self']['href']
-                if 'type' in item['_links']:
-                    type_url = item['_links']['type']['href']
-                if 'metadata' in item['_links']:
-                    metadata_url = item['_links']['metadata']['href']
 
-        if None in (artifacts_url, self_url, type_url, metadata_url):
-            print("Couldn't parse response", file=sys.stderr)
-            return
+        # Get urls from software module (other than before API version)
+        response = requests.get(sm_url + "/" + str(id), data=json.dumps([sm]),
+                             auth=(user, password), headers=headers)
+
+        if response.status_code != 500:
+
+            response = json.loads(response.content)
+            print('Got response from server when getting software module with id:')
+            pprint.pprint(response)
+
+            artifacts_url = None
+            self_url = None
+            type_url = None
+            metadata_url = None
+
+            if 'errorCode' in response:
+                print('An error occurred at getting software module with id; stopping.', file=sys.stderr)
+                return
+
+            if '_links' in response:
+                if 'artifacts' in response['_links']:
+                    artifacts_url = response['_links']['artifacts']['href']
+                if 'self' in response['_links']:
+                    self_url = response['_links']['self']['href']
+                if 'type' in response['_links']:
+                    type_url = response['_links']['type']['href']
+                if 'metadata' in response['_links']:
+                    metadata_url = response['_links']['metadata']['href']
+
+            print (artifacts_url, self_url, type_url, metadata_url)
+            if None in (artifacts_url, self_url, type_url, metadata_url):
+                print("Couldn't parse response", file=sys.stderr)
+                return
 
     # Upload Artifact
     headers = {'Accept': 'application/json'}
